@@ -55,9 +55,12 @@ def listener():
     pitch_rate = 0
     yaw_rate = 0
     speed = 0
+    move_tail(0)
+    pitch(0)
 
     def pitch_rate_callback(data):
         pitch_rate = data.data
+        pitch(pitch_rate)
     rospy.Subscriber("/jaws/movement/pitch_rate", Float64, pitch_rate_callback)
 
     def yaw_rate_callback(data):
@@ -69,7 +72,6 @@ def listener():
     rospy.Subscriber("/jaws/movement/speed", Float64, speed_callback)
     
     rospy.spin()
-
     while True:
         pitch(pitch_rate)
 
