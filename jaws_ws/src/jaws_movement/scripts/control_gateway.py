@@ -3,6 +3,7 @@ import rospy
 from std_msgs.msg import Float64
 
 from time import sleep
+import time
 from gpiozero import LED
 from gpiozero import PWMOutputDevice
 from gpiozero import OutputDevice
@@ -73,6 +74,7 @@ def listener():
         # pitch control
         pitch(pitch_rate)
         # speed and yaw rate control
+        print (time.time())
 
 
 if __name__ == '__main__':
