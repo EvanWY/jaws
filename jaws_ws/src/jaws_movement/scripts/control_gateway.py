@@ -6,6 +6,7 @@ from time import sleep
 from gpiozero import LED
 from gpiozero import PWMOutputDevice
 from gpiozero import OutputDevice
+import threading
 
 pitch_up_raw_signal = OutputDevice(4)
 pitch_down_raw_signal = OutputDevice(17)
@@ -34,46 +35,45 @@ def move_tail(val):
         tail_right_raw_signal.on()
         tail_left_raw_signal.off()
 
-# while True:
-#     a.off()
-#     sleep(0.3)
-#     a.on()
-#     sleep(2)
-
-#     for i in range(10):
-#         a.off()
-#         sleep(0.05)
-#         a.on()
-#         sleep(0.01)
-
-#     a.on()
-#     sleep(2)
+pitch_rate = 0
+yaw_rate = 0
+speed = 0
 
 def listener():
-    rospy.init_node('jaws_movement_control_gateway')
+    global pitch_rate
+    global yaw_rate
+    global speed
 
-    pitch_rate = 0
-    yaw_rate = 0
-    speed = 0
     move_tail(0)
     pitch(0)
+    rospy.init_node('jaws_movement_control_gateway')
 
     def pitch_rate_callback(data):
-        pitch_rate = data.data
-        pitch(pitch_rate)
+        global pitch_rate
+        print (pitch_rate)
+        pitch_rate=data.data
     rospy.Subscriber("/jaws/movement/pitch_rate", Float64, pitch_rate_callback)
 
     def yaw_rate_callback(data):
+        global yaw_rate
         yaw_rate = data.data
     rospy.Subscriber("/jaws/movement/yaw_rate", Float64, yaw_rate_callback)
 
     def speed_callback(data):
+        global speed
         speed = data.data
     rospy.Subscriber("/jaws/movement/speed", Float64, speed_callback)
     
-    rospy.spin()
+    def ros_spin_worker():
+        rospy.spin()
+    threading.Thread(target=ros_spin_worker).start()
+
     while True:
+        sleep(0)
+        # pitch control
         pitch(pitch_rate)
+        # speed and yaw rate control
+
 
 if __name__ == '__main__':
     listener()
