@@ -70,12 +70,14 @@ def listener():
 
     stage = 0 # stop <--> l->break->r->r->break->l
     stage_start_time = time.time()
-    base_duration = 0.1
-    delta_duration = 0.05
+    base_duration = 0.12
+    delta_duration = 0.08
 
-    speed_swing_param = 0.7
-    speed_pause_param = 0.8
+    speed_swing_param = 0.85
+    speed_pause_param = 2
 
+    lastStage = stage
+    cached_speed = speed
     while True:
         sleep(0)
 
@@ -83,6 +85,7 @@ def listener():
         pitch(pitch_rate)
 
         # speed and yaw rate control
+        yaw_factor = delta_duration*yaw_rate*0.5
         if stage == 0:
             if speed > 0:
                 #transit
@@ -91,7 +94,7 @@ def listener():
                 move_tail(-1)            
                 #end transit
         elif stage == 1:
-            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + delta_duration * yaw_rate)
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor+abs(yaw_factor))
             if time.time() >= stage_end_time:
                 #transit
                 stage = 2
@@ -99,7 +102,7 @@ def listener():
                 move_tail(0)            
                 #end transit
         elif stage == 2:
-            stage_end_time = stage_start_time + (1-speed) * speed_pause_param
+            stage_end_time = stage_start_time + 0.02 + (1-speed) * speed_pause_param
             if time.time() >= stage_end_time:
                 #transit
                 stage = 3
@@ -107,7 +110,7 @@ def listener():
                 move_tail(1)            
                 #end transit
         elif stage == 3:
-            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration - delta_duration * yaw_rate)
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor-abs(yaw_factor))
             if time.time() >= stage_end_time:
                 if speed <= 0:
                     #transit
@@ -122,7 +125,7 @@ def listener():
                     move_tail(1)            
                     #end transit
         elif stage == 4:
-            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration - delta_duration * yaw_rate)
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor-abs(yaw_factor))
             if time.time() >= stage_end_time:
                 #transit
                 stage = 5 
@@ -130,7 +133,7 @@ def listener():
                 move_tail(0)            
                 #end transit
         elif stage == 5:
-            stage_end_time = stage_start_time + (1-speed) * speed_pause_param
+            stage_end_time = stage_start_time + 0.02 + (1-speed) * speed_pause_param
             if time.time() >= stage_end_time:
                 #transit
                 stage = 6
@@ -138,7 +141,7 @@ def listener():
                 move_tail(-1)            
                 #end transit
         elif stage == 6:
-            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + delta_duration * yaw_rate)
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor+abs(yaw_factor))
             if time.time() >= stage_end_time:
                 if speed <= 0:
                     #transit
