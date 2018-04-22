@@ -51,7 +51,6 @@ def listener():
 
     def pitch_rate_callback(data):
         global pitch_rate
-        print (pitch_rate)
         pitch_rate=data.data
     rospy.Subscriber("/jaws/movement/pitch_rate", Float64, pitch_rate_callback)
 
@@ -69,12 +68,94 @@ def listener():
         rospy.spin()
     threading.Thread(target=ros_spin_worker).start()
 
+    stage = 0 # stop <--> l->break->r->r->break->l
+    stage_start_time = time.time()
+    base_duration = 0.12
+    delta_duration = 0.08
+
+    speed_swing_param = 0.85
+    speed_pause_param = 2
+
+    lastStage = stage
+    cached_speed = speed
     while True:
         sleep(0)
+
         # pitch control
         pitch(pitch_rate)
+
         # speed and yaw rate control
-        print (time.time())
+        yaw_factor = delta_duration*yaw_rate*0.5
+        if stage == 0:
+            if speed > 0:
+                #transit
+                stage = 1
+                stage_start_time = time.time()
+                move_tail(-1)            
+                #end transit
+        elif stage == 1:
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor+abs(yaw_factor))
+            if time.time() >= stage_end_time:
+                #transit
+                stage = 2
+                stage_start_time = time.time()
+                move_tail(0)            
+                #end transit
+        elif stage == 2:
+            stage_end_time = stage_start_time + 0.02 + (1-speed) * speed_pause_param
+            if time.time() >= stage_end_time:
+                #transit
+                stage = 3
+                stage_start_time = time.time()
+                move_tail(1)            
+                #end transit
+        elif stage == 3:
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor-abs(yaw_factor))
+            if time.time() >= stage_end_time:
+                if speed <= 0:
+                    #transit
+                    stage = 0
+                    stage_start_time = time.time()
+                    move_tail(0)            
+                    #end transit
+                else:
+                    #transit
+                    stage = 4
+                    stage_start_time = time.time()
+                    move_tail(1)            
+                    #end transit
+        elif stage == 4:
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor-abs(yaw_factor))
+            if time.time() >= stage_end_time:
+                #transit
+                stage = 5 
+                stage_start_time = time.time()
+                move_tail(0)            
+                #end transit
+        elif stage == 5:
+            stage_end_time = stage_start_time + 0.02 + (1-speed) * speed_pause_param
+            if time.time() >= stage_end_time:
+                #transit
+                stage = 6
+                stage_start_time = time.time()
+                move_tail(-1)            
+                #end transit
+        elif stage == 6:
+            stage_end_time = stage_start_time + (speed_swing_param * (1-speed) + speed) * (base_duration + yaw_factor+abs(yaw_factor))
+            if time.time() >= stage_end_time:
+                if speed <= 0:
+                    #transit
+                    stage = 0
+                    stage_start_time = time.time()
+                    move_tail(0)            
+                    #end transit
+                else:
+                    #transit
+                    stage = 1
+                    stage_start_time = time.time()
+                    move_tail(-1)            
+                    #end transit
+
 
 
 if __name__ == '__main__':
