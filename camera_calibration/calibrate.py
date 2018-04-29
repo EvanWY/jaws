@@ -13,7 +13,7 @@ objp[:,:2] = np.mgrid[0:8,0:6].T.reshape(-1,2)
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
 
-images = glob.glob('*.jpg')
+images = glob.glob('videos/w1/*.png')
 
 for fname in images:
     img = cv2.imread(fname)
@@ -29,7 +29,7 @@ for fname in images:
         # Draw and display the corners
         cv2.drawChessboardCorners(img, (8,6), corners,ret)
         cv2.imshow('img',img)
-        cv2.waitKey(1500)
+        #cv2.waitKey(1500)
     else:
         print ('no ret' + fname)
 
