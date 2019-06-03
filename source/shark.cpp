@@ -1,50 +1,13 @@
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
+#include <time.h>
 
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
 using namespace cv;
 using namespace std;
-
-int main( int argc, char** argv )
-{
-    VideoCapture cap(0); //capture the video from webcam
-
-    if (!cap.isOpened()) {
-        cout << "Cannot open the VideoCapture cap(0)" << endl;
-    }
-    else {
-        cout << "Open VideoCapture cap(0). Success! << endl;
-    }
-
-    while(1){
-
-        Mat frame;
-        // Capture frame-by-frame
-        cap >> frame;
-
-        // If the frame is empty, break immediately
-        if (frame.empty())
-            break;
-
-        // Display the resulting frame
-        imshow( "Frame", frame );
-
-        // Press  ESC on keyboard to exit
-        char c=(char)waitKey(25);
-        if(c==27)
-            break;
-    }
-
-    // When everything done, release the video capture object
-    cap.release();
-
-    // Closes all the frames
-    destroyAllWindows();
-
-}
 
 class SharkController {
     private:
@@ -91,11 +54,46 @@ class SharkController {
         }
 };
 
+int main(int argc, char** argv)
+{
+    VideoCapture cap(0); //capture the video from webcam
+
+    if (!cap.isOpened()) {
+        cout << "Cannot open the VideoCapture cap(0)" << endl;
+    }
+    else {
+        cout << "Open VideoCapture cap(0). Success! << endl;
+    }
+
+    SharkController sharkController;
+
+    time_t startTimer = time(NULL);
+
+    while(1){
+        double timeElapsed = difftime(time(NULL), startTimer);
+        cout << timeElapsed << endl;
+
+        Mat frame;
+        cap >> frame;
+        if (frame.empty())
+            break;
+
+        imshow( "Frame", frame );
+        waitKey(0);
+    }
+
+    //sharkController.SetClimbMotorSpeed(0.5);
+    //delay(300);
+
+    cap.release();
+    destroyAllWindows();
+
+}
+
+
 
 int main2 (void)
 {
-    SharkController sharkController;
-
     for (int i=0; i<1; i++) {
         sharkController.SetClimbMotorSpeed(0.5);
         delay(300);
