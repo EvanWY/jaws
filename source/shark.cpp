@@ -12,14 +12,11 @@ int main( int argc, char** argv )
 {
     VideoCapture cap(0); //capture the video from webcam
 
-    if ( !cap.isOpened() )  // if not success, exit program
-    {
-        cout << "Cannot open the web cam" << endl;
-        return -1;
+    if (!cap.isOpened()) {
+        cout << "Cannot open the VideoCapture cap(0)" << endl;
     }
-    else
-    {
-        cout << "good!" << endl;
+    else {
+        cout << "Open VideoCapture cap(0). Success! << endl;
     }
 
     while(1){
