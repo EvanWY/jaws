@@ -8,7 +8,7 @@ default: all
 all: Shark
 
 Shark: shark.cpp
-	    $(CC) $(CFLAGS) -lwiringPi shark.cpp `pkg-config --libs opencv` -o Shark
+	    $(CC) $(CFLAGS) -lpthread -lwiringPi shark.cpp `pkg-config --libs opencv` -o Shark
 
 clean veryclean:
 	    $(RM) Shark
