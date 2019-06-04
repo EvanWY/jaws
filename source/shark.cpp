@@ -5,6 +5,7 @@
 #include <time.h>
 #include <math.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -49,26 +50,10 @@ class SharkController {
 
         double currentSwingAngle = 0;
         double currentSwingIntensity = 0;
-        double currentClimbDelta = 0;
+        double currentClimbSpeed = 0;
 
         void updateClimb(double deltaSeconds) {
-            if (currentClimbDelta == 0) {
-                setClimbMotorSpeed(0);
-            }
-            else if (deltaSeconds >= abs(currentClimbDelta)) {
-                setClimbMotorSpeed(0);
-                currentClimbDelta = 0;
-            }
-            else {
-                if (currentClimbDelta > 0) {
-                    setClimbMotorSpeed(1);
-                    currentClimbDelta -= deltaSeconds;
-                }
-                else {
-                    setClimbMotorSpeed(-1);
-                    currentClimbDelta += deltaSeconds;
-                }
-            }
+            setClimbMotorSpeed(currentClimbSpeed);
         }
 
         double swingTimer = -1;
@@ -81,24 +66,21 @@ class SharkController {
                     swingTimer = 0;
                 }
                 swingTimer += deltaSeconds;
-                double leftIntensity = min(1.0, currentSwingIntensity * (1 + currentSwingAngle));
-                double rightIntensity = min(1.0, currentSwingIntensity * (1 - currentSwingAngle));
+                double leftIntensity = max(0.0, min(1.0, currentSwingIntensity * (1 + currentSwingAngle)));
+                double rightIntensity = max(0.0, min(1.0, currentSwingIntensity * (1 - currentSwingAngle)));
 
-                if (swingTimer >= 0.8) {
-                    swingTimer -= 0.8;
+                double loopDuration = 0.35;
+
+                if (swingTimer >= loopDuration) {
+                    swingTimer -= loopDuration;
                 }
 
-                if (swingTimer < 0.2) {
+
+                if (swingTimer < loopDuration * (0.1 + 0.4 * (1.0+currentSwingAngle))) {
                     setTailMotorSpeed(leftIntensity);
                 }
-                else if (swingTimer < 0.4) {
-                    setTailMotorSpeed(0);
-                }
-                else if (swingTimer < 0.6) {
+                else {
                     setTailMotorSpeed(-rightIntensity);
-                }
-                else if (swingTimer < 0.8) {
-                    setTailMotorSpeed(0);
                 }
             }
         }
@@ -115,8 +97,8 @@ class SharkController {
             updateSwingTail(0);
         }
 
-        void Climb(double value) {
-            currentClimbDelta += value;
+        void Climb(double speed) {
+            currentClimbSpeed = speed;
             updateClimb(0);
         }
 
@@ -129,9 +111,20 @@ class SharkController {
         }
 };
 
-void *shark_control_thread_function() {
-    sleep(1);
-    cout << "hi from shark control thread" << endl;
+pthread_mutex_t lock;
+double target_heading_diff;
+double target_intensity;
+
+void *shark_control_thread_function(void * data) {
+    SharkController sharkController;
+    while (1) {
+        pthread_mutex_lock(&lock);
+        sharkController.SwingTail(target_heading_diff, target_intensity);
+        pthread_mutex_unlock(&lock);
+
+        sharkController.Update(0.01);
+        usleep(10000);
+    }
     return NULL;
 }
 
@@ -144,38 +137,62 @@ int main(int argc, char** argv) {
     else {
         cout << "Open VideoCapture cap(0). Success!" << endl;
     }
+    cap.set(CV_CAP_PROP_FRAME_WIDTH,320);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT,240);
 
-    SharkController sharkController;
+    pthread_t tid;
+    pthread_create(&tid, NULL, shark_control_thread_function, NULL);
 
     auto startTime = chrono::high_resolution_clock::now();
-    auto lastFrameTime = startTime;
     auto currentTime = startTime;
-
-    sharkController.SwingTail(0.5, 1);
-    sharkController.Climb(-1);
+    auto lastFrameTime = startTime;
 
     while(1){
         currentTime = chrono::high_resolution_clock::now();
-
-        double secsElapsed = chrono::duration<double>(currentTime-startTime).count();
-        cout.precision(17);
-        cout << fixed << secsElapsed << endl;
-
-        sharkController.Update(chrono::duration<double>(currentTime - lastFrameTime).count());
-
-        Mat frame;
-        cap >> frame;
-        if (frame.empty())
-            break;
-
-        //imshow( "Frame", frame );
-        //waitKey(25);
-        //
+        double deltaSeconds = chrono::duration<double>(currentTime-lastFrameTime).count();
+        double elapsedSeconds = chrono::duration<double>(currentTime-startTime).count();
         lastFrameTime = currentTime;
-    }
 
-    //sharkController.SetClimbMotorSpeed(0.5);
-    //delay(300);
+        // double secsElapsed = chrono::duration<double>(currentTime-startTime).count();
+        // cout.precision(17);
+        // cout << fixed << secsElapsed << endl;
+
+
+        Mat imgOriginal;
+        cap >> imgOriginal;
+        if (imgOriginal.empty())
+            break;
+        flip(imgOriginal, imgOriginal, -1);
+
+        Mat imgHSV;
+        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
+
+        vector<Mat> channels(3);
+        split(imgHSV, channels);
+
+        double minVal;
+        double maxVal;
+        Point minLoc;
+        Point maxLoc;
+        minMaxLoc(channels[2], &minVal, &maxVal, &minLoc, &maxLoc);
+
+        rectangle(imgOriginal, 
+                Point(maxLoc.x - 15, maxLoc.y - 15),
+                Point(maxLoc.x + 15, maxLoc.y + 15),
+                Scalar::all(0), 2, 8, 0 );
+
+
+        //imshow( "Frame", imgOriginal);
+        //waitKey(25);
+
+        double light_target = (maxLoc.x/160.0) - 1.0;
+        cout << light_target << "\t"<< maxVal << endl;
+
+        pthread_mutex_lock(&lock);
+        target_heading_diff = light_target;
+        target_intensity = 0.5 * (maxVal / 255.0);
+        pthread_mutex_unlock(&lock);
+    }
 
     cap.release();
     destroyAllWindows();
