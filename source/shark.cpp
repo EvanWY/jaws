@@ -4,6 +4,7 @@
 #include <iostream>
 #include <time.h>
 #include <math.h>
+#include <pthread.h>
 
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -128,8 +129,13 @@ class SharkController {
         }
 };
 
-int main(int argc, char** argv)
-{
+void *shark_control_thread_function() {
+    sleep(1);
+    cout << "hi from shark control thread" << endl;
+    return NULL;
+}
+
+int main(int argc, char** argv) {
     VideoCapture cap(0); //capture the video from webcam
 
     if (!cap.isOpened()) {
