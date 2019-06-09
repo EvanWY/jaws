@@ -129,6 +129,27 @@ void *shark_control_thread_function(void * data) {
     return NULL;
 }
 
+int idx = 0;
+double profiler_timer[10];
+auto prev_time = chrono::high_resolution_clock::now();
+void PROFILER_TIMER(bool is_loop_begin = false) {
+    if (is_loop_begin) {
+        idx = 0;
+        prev_time = chrono::high_resolution_clock::now();
+        for (int i=0; i<10; i++) {
+            cout << profiler_timer[i] << "\t || ";
+        }
+        cout << endl;
+    }
+    else {
+        auto currentTime = chrono::high_resolution_clock::now();
+        double delta = chrono::duration<double, std::milli>(currentTime - prev_time).count();
+        profiler_timer[idx] = profiler_timer[idx] * 0.9 + delta * 0.1;
+        prev_time = currentTime;
+        idx ++;
+    }
+}
+
 int main(int argc, char** argv) {
     VideoCapture cap(0); //capture the video from webcam
 
@@ -140,6 +161,7 @@ int main(int argc, char** argv) {
     }
     cap.set(CV_CAP_PROP_FRAME_WIDTH,320);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT,240);
+    cap.set(CV_CAP_PROP_CONVERT_RGB, false);
 
     pthread_t tid;
     pthread_create(&tid, NULL, shark_control_thread_function, NULL);
@@ -149,50 +171,55 @@ int main(int argc, char** argv) {
     auto lastFrameTime = startTime;
 
     while(1){
+        PROFILER_TIMER(1);
         currentTime = chrono::high_resolution_clock::now();
-        double deltaSeconds = chrono::duration<double>(currentTime-lastFrameTime).count();
-        double elapsedSeconds = chrono::duration<double>(currentTime-startTime).count();
+        //double deltaSeconds = chrono::duration<double>(currentTime-lastFrameTime).count();
+        //double elapsedSeconds = chrono::duration<double>(currentTime-startTime).count();
         lastFrameTime = currentTime;
 
-        // double secsElapsed = chrono::duration<double>(currentTime-startTime).count();
-        // cout.precision(17);
-        // cout << fixed << secsElapsed << endl;
-
-
+        PROFILER_TIMER();
         Mat imgOriginal;
         cap >> imgOriginal;
         if (imgOriginal.empty())
             break;
+
+        PROFILER_TIMER();
         flip(imgOriginal, imgOriginal, -1);
 
+        PROFILER_TIMER();
         Mat imgHSV;
         cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
 
+        PROFILER_TIMER();
         vector<Mat> channels(3);
         split(imgHSV, channels);
 
+        PROFILER_TIMER();
         double minVal;
         double maxVal;
         Point minLoc;
         Point maxLoc;
         minMaxLoc(channels[2], &minVal, &maxVal, &minLoc, &maxLoc);
 
-        rectangle(imgOriginal, 
-                Point(maxLoc.x - 15, maxLoc.y - 15),
-                Point(maxLoc.x + 15, maxLoc.y + 15),
-                Scalar::all(0), 2, 8, 0 );
+        PROFILER_TIMER();
+        rectangle(imgOriginal, Point(maxLoc.x - 15, maxLoc.y - 15),
+                Point(maxLoc.x + 15, maxLoc.y + 15), Scalar::all(0), 2, 8, 0 );
 
-
+        PROFILER_TIMER();
         imshow( "Frame", imgOriginal);
         waitKey(25);
 
+        PROFILER_TIMER();
         double light_target = (maxLoc.x/160.0) - 1.0;
-        cout << light_target << "\t"<< maxVal << endl;
+        //cout << light_target << "\t"<< maxVal << endl;
 
         pthread_mutex_lock(&lock);
         target_heading_diff = light_target;
         target_intensity = 0.5 * (maxVal / 255.0);
         pthread_mutex_unlock(&lock);
+        PROFILER_TIMER();
+
+
     }
 
     cap.release();
