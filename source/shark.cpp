@@ -15,7 +15,8 @@ using namespace std;
 
 class SharkController {
     private:
-        const int PWM_RANGE = 100;
+        //const int PWM_RANGE = 100;
+        const int PWM_RANGE = 0;
         const int MAX_SAFE_PWM_VALUE = PWM_RANGE * 0.3;
 
         void safeSetPwm(int pin, int value) {
@@ -182,8 +183,8 @@ int main(int argc, char** argv) {
                 Scalar::all(0), 2, 8, 0 );
 
 
-        //imshow( "Frame", imgOriginal);
-        //waitKey(25);
+        imshow( "Frame", imgOriginal);
+        waitKey(25);
 
         double light_target = (maxLoc.x/160.0) - 1.0;
         cout << light_target << "\t"<< maxVal << endl;
