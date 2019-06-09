@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
     }
     cap.set(CV_CAP_PROP_FRAME_WIDTH,320);
     cap.set(CV_CAP_PROP_FRAME_HEIGHT,240);
-    cap.set(CV_CAP_PROP_CONVERT_RGB, false);
+    //cout << cap.set(CV_CAP_PROP_CONVERT_RGB, false) << endl;
 
     pthread_t tid;
     pthread_create(&tid, NULL, shark_control_thread_function, NULL);
@@ -191,15 +191,19 @@ int main(int argc, char** argv) {
         cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
 
         PROFILER_TIMER();
-        vector<Mat> channels(3);
-        split(imgHSV, channels);
+        // vector<Mat> channels(3);
+        //split(imgHSV, channels);
+        Mat channelV(imgHSV.rows, imgHSV.cols, CV_8UC1);
+        int from_to[] = {2, 0};
+        mixChannels(&imgHSV, 1, &channelV, 1, from_to, 1);
 
         PROFILER_TIMER();
         double minVal;
         double maxVal;
         Point minLoc;
         Point maxLoc;
-        minMaxLoc(channels[2], &minVal, &maxVal, &minLoc, &maxLoc);
+        //minMaxLoc(channels[2], &minVal, &maxVal, &minLoc, &maxLoc);
+        minMaxLoc(channelV, &minVal, &maxVal, &minLoc, &maxLoc);
 
         PROFILER_TIMER();
         rectangle(imgOriginal, Point(maxLoc.x - 15, maxLoc.y - 15),
