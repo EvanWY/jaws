@@ -247,8 +247,8 @@ int main(int argc, char** argv) {
                 Point(maxLoc.x + 15, maxLoc.y + 15), Scalar::all(0), 2, 8, 0 );
 
         PROFILER_TIMER();
-        imshow( "Frame", imgOriginal);
-        waitKey(25);
+        // imshow( "Frame", imgOriginal);
+        // waitKey(25);
 
         PROFILER_TIMER();
         double light_target = (maxLoc.x/160.0) - 1.0;
