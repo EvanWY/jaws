@@ -174,6 +174,7 @@ void PROFILER_TIMER(bool is_loop_begin = false) {
         profiler_timer[idx] = profiler_timer[idx] * 0.9 + delta * 0.1;
         prev_time = currentTime;
         idx ++;
+        cout << "profiler called, idx: " << idx << endl;
     }
 }
 
