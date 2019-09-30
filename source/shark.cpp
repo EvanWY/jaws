@@ -246,8 +246,8 @@ int main(int argc, char** argv) {
                 Point(maxLoc.x + 15, maxLoc.y + 15), Scalar::all(0), 2, 8, 0 );
 
         PROFILER_TIMER();
-        // imshow( "Frame", imgOriginal);
-        // waitKey(25);
+        imshow( "Frame", imgOriginal);
+        waitKey(25);
 
         PROFILER_TIMER();
         double light_target = (maxLoc.x/160.0) - 1.0;
@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
         pthread_mutex_lock(&lock);
         target_heading_diff = light_target;
         target_intensity = 0.5 * (maxVal / 255.0);
-        std::cout << target_heading_diff << "\t" << target_intensity << std::endl;
+        //std::cout << target_heading_diff << "\t" << target_intensity << std::endl;
         pthread_mutex_unlock(&lock);
         PROFILER_TIMER();
     }
