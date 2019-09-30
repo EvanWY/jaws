@@ -160,22 +160,21 @@ int idx = 0;
 double profiler_timer[10];
 auto prev_time = chrono::high_resolution_clock::now();
 void PROFILER_TIMER(bool is_loop_begin = false) {
-    if (is_loop_begin) {
-        idx = 0;
-        prev_time = chrono::high_resolution_clock::now();
-        for (int i=0; i<10; i++) {
-            cout << profiler_timer[i] << "\t || ";
-        }
-        cout << endl;
-    }
-    else {
-        auto currentTime = chrono::high_resolution_clock::now();
-        double delta = chrono::duration<double, std::milli>(currentTime - prev_time).count();
-        profiler_timer[idx] = profiler_timer[idx] * 0.9 + delta * 0.1;
-        prev_time = currentTime;
-        idx ++;
-        cout << "profiler called, idx: " << idx << endl;
-    }
+    // if (is_loop_begin) {
+    //     idx = 0;
+    //     prev_time = chrono::high_resolution_clock::now();
+    //     for (int i=0; i<10; i++) {
+    //         cout << profiler_timer[i] << "\t || ";
+    //     }
+    //     cout << endl;
+    // }
+    // else {
+    //     auto currentTime = chrono::high_resolution_clock::now();
+    //     double delta = chrono::duration<double, std::milli>(currentTime - prev_time).count();
+    //     profiler_timer[idx] = profiler_timer[idx] * 0.9 + delta * 0.1;
+    //     prev_time = currentTime;
+    //     idx ++;
+    // }
 }
 
 /*
