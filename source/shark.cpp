@@ -26,8 +26,8 @@ using namespace std;
 */
 class SharkController {
     private:
-        //const int PWM_RANGE = 100;
-        const int PWM_RANGE = 0;
+        const int PWM_RANGE = 100;
+        //const int PWM_RANGE = 0;
         const int MAX_SAFE_PWM_VALUE = PWM_RANGE * 0.3;
 
         void safeSetPwm(int pin, int value) {
