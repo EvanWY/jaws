@@ -1,3 +1,5 @@
+// ascii: 
+
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <chrono>
@@ -13,6 +15,15 @@
 using namespace cv;
 using namespace std;
 
+/*
+  #####                                                                         
+ #     #   ####   #    #  #####  #####    ####   #       #       ######  #####  
+ #        #    #  ##   #    #    #    #  #    #  #       #       #       #    # 
+ #        #    #  # #  #    #    #    #  #    #  #       #       #####   #    # 
+ #        #    #  #  # #    #    #####   #    #  #       #       #       #####  
+ #     #  #    #  #   ##    #    #   #   #    #  #       #       #       #   #  
+  #####    ####   #    #    #    #    #   ####   ######  ######  ######  #    # 
+*/
 class SharkController {
     private:
         //const int PWM_RANGE = 100;
@@ -111,11 +122,18 @@ class SharkController {
             softPwmCreate(13, 0, PWM_RANGE);
         }
 };
-
+/*
+  #####                                                  #######                                         
+ #     #   ####   #    #  #####  #####    ####   #          #     #    #  #####   ######    ##    #####  
+ #        #    #  ##   #    #    #    #  #    #  #          #     #    #  #    #  #        #  #   #    # 
+ #        #    #  # #  #    #    #    #  #    #  #          #     ######  #    #  #####   #    #  #    # 
+ #        #    #  #  # #    #    #####   #    #  #          #     #    #  #####   #       ######  #    # 
+ #     #  #    #  #   ##    #    #   #   #    #  #          #     #    #  #   #   #       #    #  #    # 
+  #####    ####   #    #    #    #    #   ####   ######     #     #    #  #    #  ######  #    #  #####  
+*/
 pthread_mutex_t lock;
 double target_heading_diff;
 double target_intensity;
-
 void *shark_control_thread_function(void * data) {
     SharkController sharkController;
     while (1) {
@@ -129,6 +147,15 @@ void *shark_control_thread_function(void * data) {
     return NULL;
 }
 
+/*
+ ######                                                     
+ #     #  #####    ####   ######  #  #       ######  #####  
+ #     #  #    #  #    #  #       #  #       #       #    # 
+ ######   #    #  #    #  #####   #  #       #####   #    # 
+ #        #####   #    #  #       #  #       #       #####  
+ #        #   #   #    #  #       #  #       #       #   #  
+ #        #    #   ####   #       #  ######  ######  #    # 
+*/
 int idx = 0;
 double profiler_timer[10];
 auto prev_time = chrono::high_resolution_clock::now();
@@ -150,6 +177,15 @@ void PROFILER_TIMER(bool is_loop_begin = false) {
     }
 }
 
+/*
+ #     #                    
+ ##   ##    ##    #  #    # 
+ # # # #   #  #   #  ##   # 
+ #  #  #  #    #  #  # #  # 
+ #     #  ######  #  #  # # 
+ #     #  #    #  #  #   ## 
+ #     #  #    #  #  #    # 
+*/
 int main(int argc, char** argv) {
     VideoCapture cap(0); //capture the video from webcam
 
@@ -170,7 +206,7 @@ int main(int argc, char** argv) {
     auto currentTime = startTime;
     auto lastFrameTime = startTime;
 
-    while(1){
+    while(1) {
         PROFILER_TIMER(1);
         currentTime = chrono::high_resolution_clock::now();
         //double deltaSeconds = chrono::duration<double>(currentTime-lastFrameTime).count();
@@ -222,8 +258,6 @@ int main(int argc, char** argv) {
         target_intensity = 0.5 * (maxVal / 255.0);
         pthread_mutex_unlock(&lock);
         PROFILER_TIMER();
-
-
     }
 
     cap.release();
