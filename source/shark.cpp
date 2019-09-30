@@ -257,6 +257,7 @@ int main(int argc, char** argv) {
         pthread_mutex_lock(&lock);
         target_heading_diff = light_target;
         target_intensity = 0.5 * (maxVal / 255.0);
+        std::cout << target_heading_diff << " " << target_intensity << std::endl;
         pthread_mutex_unlock(&lock);
         PROFILER_TIMER();
     }
