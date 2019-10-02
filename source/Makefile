@@ -1,4 +1,4 @@
-CC      = g++
+CC      = g++ -std=c++14
 CFLAGS  = -Wall `pkg-config --cflags opencv`
 RM      = rm -f
 
@@ -8,7 +8,7 @@ default: all
 all: Shark
 
 Shark: shark.cpp
-	    $(CC) $(CFLAGS) -lpthread -lwiringPi shark.cpp `pkg-config --libs opencv` -o Shark
+	    $(CC) $(CFLAGS) -I ./tiny_dnn -lpthread -lwiringPi shark.cpp `pkg-config --libs opencv` -o Shark
 
 clean veryclean:
 	    $(RM) Shark

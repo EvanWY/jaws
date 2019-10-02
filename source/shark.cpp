@@ -1,28 +1,26 @@
-// ascii: 
+// #include <wiringPi.h>
+// #include <softPwm.h>
+// #include <chrono>
+// #include <iostream>
+// #include <time.h>
+// #include <math.h>
+// #include <pthread.h>
+// #include <unistd.h>
 
-#include <wiringPi.h>
-#include <softPwm.h>
-#include <chrono>
-#include <iostream>
-#include <time.h>
-#include <math.h>
-#include <pthread.h>
-#include <unistd.h>
-
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+// #include "opencv2/highgui/highgui.hpp"
+// #include "opencv2/imgproc/imgproc.hpp"
 
 #include "tiny_dnn/tiny_dnn.h"
 
-using namespace cv;
-using namespace std;
+// using namespace cv;
+// using namespace std;
 
 /////
 using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace tiny_dnn::layers;
 
-void construct_cnn() {
+void main() {
     using namespace tiny_dnn;
 
     network<sequential> net;
