@@ -20,16 +20,16 @@ using namespace tiny_dnn;
 using namespace tiny_dnn::activation;
 using namespace tiny_dnn::layers;
 
-void main() {
+int main() {
     using namespace tiny_dnn;
 
     network<sequential> net;
 
     // add layers
-    net << conv(32, 32, 5, 1, 6) << tanh()  // in:32x32x1, 5x5conv, 6fmaps
-        << ave_pool(28, 28, 6, 2) << tanh() // in:28x28x6, 2x2pooling
-        << fc(14 * 14 * 6, 120) << tanh()   // in:14x14x6, out:120
-        << fc(120, 10);                     // in:120,     out:10
+    net << tiny_dnn::layers::conv(32, 32, 5, 1, 6) << tiny_dnn::activation::tanh()  // in:32x32x1, 5x5conv, 6fmaps
+        << tiny_dnn::layers::ave_pool(28, 28, 6, 2) << tiny_dnn::activation::tanh() // in:28x28x6, 2x2pooling
+        << tiny_dnn::layers::fc(14 * 14 * 6, 120) << tiny_dnn::activation::tanh()   // in:14x14x6, out:120
+        << tiny_dnn::layers::fc(120, 10);                                           // in:120,     out:10
 
     assert(net.in_data_size() == 32 * 32);
     assert(net.out_data_size() == 10);
