@@ -9,6 +9,7 @@
 
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "facedetectcnn.h"
 
 using namespace cv;
 using namespace std;
@@ -130,13 +131,13 @@ class SharkController {
   #####    ####   #    #    #    #    #   ####   ######     #     #    #  #    #  ######  #    #  #####  
 */
 pthread_mutex_t lock;
-double target_heading_diff;
+double target_turn_rate;
 double target_intensity;
 void *shark_control_thread_function(void * data) {
     SharkController sharkController;
     while (1) {
         pthread_mutex_lock(&lock);
-        sharkController.SwingTail(target_heading_diff, target_intensity);
+        sharkController.SwingTail(target_turn_rate, target_intensity);
         pthread_mutex_unlock(&lock);
 
         sharkController.Update(0.01);
@@ -200,18 +201,12 @@ int main(int argc, char** argv) {
     pthread_t tid;
     pthread_create(&tid, NULL, shark_control_thread_function, NULL);
 
-    auto startTime = chrono::high_resolution_clock::now();
-    auto currentTime = startTime;
-    auto lastFrameTime = startTime;
+    // auto startTime = chrono::high_resolution_clock::now();
+    // auto currentTime = startTime;
+    // auto lastFrameTime = startTime;
 
     while(1) {
         PROFILER_TIMER(1);
-        currentTime = chrono::high_resolution_clock::now();
-        //double deltaSeconds = chrono::duration<double>(currentTime-lastFrameTime).count();
-        //double elapsedSeconds = chrono::duration<double>(currentTime-startTime).count();
-        lastFrameTime = currentTime;
-
-        PROFILER_TIMER();
         Mat imgOriginal;
         cap >> imgOriginal;
         if (imgOriginal.empty())
@@ -220,41 +215,65 @@ int main(int argc, char** argv) {
         PROFILER_TIMER();
         flip(imgOriginal, imgOriginal, -1);
 
-        PROFILER_TIMER();
-        Mat imgHSV;
-        cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
+        // PROFILER_TIMER();
+        // Mat imgHSV;
+        // cvtColor(imgOriginal, imgHSV, COLOR_BGR2HSV);
+
+        // PROFILER_TIMER();
+        // Mat channelV(imgHSV.rows, imgHSV.cols, CV_8UC1);
+        // int from_to[] = {2, 0};
+        // mixChannels(&imgHSV, 1, &channelV, 1, from_to, 1);
+
+        // PROFILER_TIMER();
+        // double minVal;
+        // double maxVal;
+        // Point minLoc;
+        // Point maxLoc;
+        // minMaxLoc(channelV, &minVal, &maxVal, &minLoc, &maxLoc);
+
+        // PROFILER_TIMER();
+        // rectangle(imgOriginal, Point(maxLoc.x - 15, maxLoc.y - 15),
+        //         Point(maxLoc.x + 15, maxLoc.y + 15), Scalar::all(0), 2, 8, 0 );
 
         PROFILER_TIMER();
-        // vector<Mat> channels(3);
-        //split(imgHSV, channels);
-        Mat channelV(imgHSV.rows, imgHSV.cols, CV_8UC1);
-        int from_to[] = {2, 0};
-        mixChannels(&imgHSV, 1, &channelV, 1, from_to, 1);
+        int *pResults = NULL;
+        unsigned char *pBuffer = (unsigned char *)malloc(0x20000);
+        if (!pBuffer)
+        {
+            cout << "Failed to allocate buffer." << endl;
+            return -1;
+        }
 
         PROFILER_TIMER();
-        double minVal;
-        double maxVal;
-        Point minLoc;
-        Point maxLoc;
-        //minMaxLoc(channels[2], &minVal, &maxVal, &minLoc, &maxLoc);
-        minMaxLoc(channelV, &minVal, &maxVal, &minLoc, &maxLoc);
+        pResults = facedetect_cnn(pBuffer, (unsigned char *)(imgOriginal.ptr(0)), imgOriginal.cols, imgOriginal.rows, (int)imgOriginal.step);
 
         PROFILER_TIMER();
-        rectangle(imgOriginal, Point(maxLoc.x - 15, maxLoc.y - 15),
-                Point(maxLoc.x + 15, maxLoc.y + 15), Scalar::all(0), 2, 8, 0 );
+        printf("%d faces detected.\n", (pResults ? *pResults : 0));
+        for (int i = 0; i < (pResults ? *pResults : 0); i++)
+        {
+            short *p = ((short *)(pResults + 1)) + 142 * i;
+            int x = p[0];
+            int y = p[1];
+            int w = p[2];
+            int h = p[3];
+            int confidence = p[4];
+            int angle = p[5];
+
+            //printf("face_rect=[%d, %d, %d, %d], confidence=%d, angle=%d\n", x, y, w, h, confidence, angle);
+            rectangle(imgOriginal, Rect(x, y, w, h), Scalar(0, 255, 0), 2);
+        }
 
         PROFILER_TIMER();
-        imshow( "Frame", imgOriginal);
+        imshow("Frame", imgOriginal);
         waitKey(25);
 
         PROFILER_TIMER();
-        double light_target = (maxLoc.x/160.0) - 1.0;
-        //cout << light_target << "\t"<< maxVal << endl;
+        double light_target = (maxLoc.x / 160.0) - 1.0;
 
         pthread_mutex_lock(&lock);
-        target_heading_diff = light_target;
+        target_turn_rate = light_target;
         target_intensity = 0.5 * (maxVal / 255.0);
-        //std::cout << target_heading_diff << "\t" << target_intensity << std::endl;
+        //std::cout << target_turn_rate << "\t" << target_intensity << std::endl;
         pthread_mutex_unlock(&lock);
         PROFILER_TIMER();
     }
