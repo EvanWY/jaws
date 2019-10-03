@@ -194,8 +194,8 @@ int main(int argc, char** argv) {
     else {
         cout << "Open VideoCapture cap(0). Success!" << endl;
     }
-    cap.set(CV_CAP_PROP_FRAME_WIDTH,80);//320x240
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT,60);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH,128);//320x240
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT,96);
     //cout << cap.set(CV_CAP_PROP_CONVERT_RGB, false) << endl;
 
     pthread_t tid;
