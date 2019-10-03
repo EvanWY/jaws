@@ -10,26 +10,34 @@
 // #include "opencv2/highgui/highgui.hpp"
 // #include "opencv2/imgproc/imgproc.hpp"
 
-#include "tiny_dnn/tiny_dnn.h"
-
 // using namespace cv;
 // using namespace std;
 
 /////
+
+//#include "tiny_dnn/tiny_dnn.h"
+#include "tiny_dnn/network.h"
+#include "tiny_dnn/nodes.h"
+#include "tiny_dnn/util/util.h"
+#include "tiny_dnn/lossfunctions/loss_function.h"
+#include "tiny_dnn/optimizers/optimizer.h"
+#include "tiny_dnn/io/mnist_parser.h"
+#include "tiny_dnn/layers/convolutional_layer.h"
+#include "tiny_dnn/layers/fully_connected_layer.h"
+#include "tiny_dnn/layers/average_pooling_layer.h"
+#include "tiny_dnn/activations/tanh_layer.h"
+#include "tiny_dnn/util/deserialization_helper.h"
+#include "tiny_dnn/util/serialization_helper.h"
 using namespace tiny_dnn;
-using namespace tiny_dnn::activation;
-using namespace tiny_dnn::layers;
 
 int main() {
-    using namespace tiny_dnn;
-
     network<sequential> net;
 
     // add layers
-    net << tiny_dnn::layers::conv(32, 32, 5, 1, 6) << tiny_dnn::activation::tanh()  // in:32x32x1, 5x5conv, 6fmaps
-        << tiny_dnn::layers::ave_pool(28, 28, 6, 2) << tiny_dnn::activation::tanh() // in:28x28x6, 2x2pooling
-        << tiny_dnn::layers::fc(14 * 14 * 6, 120) << tiny_dnn::activation::tanh()   // in:14x14x6, out:120
-        << tiny_dnn::layers::fc(120, 10);                                           // in:120,     out:10
+    net << convolutional_layer(32, 32, 5, 1, 6) << tanh_layer()  // in:32x32x1, 5x5conv, 6fmaps
+        << average_pooling_layer(28, 28, 6, 2) << tanh_layer() // in:28x28x6, 2x2pooling
+        << fully_connected_layer(14 * 14 * 6, 120) << tanh_layer()   // in:14x14x6, out:120
+        << fully_connected_layer(120, 10);                                           // in:120,     out:10
 
     assert(net.in_data_size() == 32 * 32);
     assert(net.out_data_size() == 10);
