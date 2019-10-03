@@ -268,11 +268,11 @@ int main(int argc, char** argv) {
         waitKey(25);
 
         PROFILER_TIMER();
-        double light_target = (maxLoc.x / 160.0) - 1.0;
+        //double face_target = (maxLoc.x / 160.0) - 1.0;
 
         pthread_mutex_lock(&lock);
-        target_turn_rate = light_target;
-        target_intensity = 0.5 * (maxVal / 255.0);
+        //target_turn_rate = face_target;
+        //target_intensity = 0.5 * (maxVal / 255.0);
         //std::cout << target_turn_rate << "\t" << target_intensity << std::endl;
         pthread_mutex_unlock(&lock);
         PROFILER_TIMER();
