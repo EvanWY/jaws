@@ -15,4 +15,4 @@ Shark: libfacedetection/src/facedetectcnn-int8data.o libfacedetection/src/facede
 	$(CC) $(CFLAGS) -o Shark libfacedetection/src/facedetectcnn-int8data.o libfacedetection/src/facedetectcnn-model.o libfacedetection/src/facedetectcnn.o shark.o
 
 clean veryclean:
-	$(RM) Shark
+	$(RM) Shark libfacedetection/src/facedetectcnn-int8data.o libfacedetection/src/facedetectcnn-model.o libfacedetection/src/facedetectcnn.o shark.o
