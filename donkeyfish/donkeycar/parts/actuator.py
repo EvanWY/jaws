@@ -461,6 +461,108 @@ class MockController(object):
         pass
 
 
+MAX_ABS_MOTOR_VELOCITY = 0.3
+class JawsController(object):
+    def __init__(self):
+        import RPi.GPIO as GPIO
+        GPIO.setmode(GPIO.BOARD)
+
+        GPIO.setup(13, GPIO.OUT)
+        GPIO.setup(15, GPIO.OUT)
+        GPIO.setup(19, GPIO.OUT)
+        GPIO.setup(21, GPIO.OUT)
+
+        self.p27 = GPIO.PWM(13, 100)  # channel=12 frequency=50Hz
+        self.p27.start(0)
+        self.p22 = GPIO.PWM(15, 100)  # channel=12 frequency=50Hz
+        self.p22.start(0)
+        self.p10 = GPIO.PWM(19, 100)  # channel=12 frequency=50Hz
+        self.p10.start(0)
+        self.p09 = GPIO.PWM(21, 100)  # channel=12 frequency=50Hz
+        self.p09.start(0)
+
+        self.turning = 0
+        self.climbing = 0
+        self.throttle = 0
+        self.running = True
+        self.tail_wave_timer = None
+        self.last_frame_time = time.time()
+
+    def set_tail_motor_velocity(self, v):
+        if v < -MAX_ABS_MOTOR_VELOCITY:
+            v = -MAX_ABS_MOTOR_VELOCITY
+        elif v > MAX_ABS_MOTOR_VELOCITY:
+            v = MAX_ABS_MOTOR_VELOCITY
+
+        if v <= 0:
+            self.p22.ChangeDutyCycle(0)
+            self.p27.ChangeDutyCycle(-v * 100.0)
+        else:
+            self.p22.ChangeDutyCycle(v * 100.0)
+            self.p27.ChangeDutyCycle(0)
+
+    def set_climb_motor_velocity(self, v):
+        if v < -MAX_ABS_MOTOR_VELOCITY:
+            v = -MAX_ABS_MOTOR_VELOCITY
+        elif v > MAX_ABS_MOTOR_VELOCITY:
+            v = MAX_ABS_MOTOR_VELOCITY
+
+        if v <= 0:
+            self.p10.ChangeDutyCycle(0)
+            self.p09.ChangeDutyCycle(-v * 100.0)
+        else:
+            self.p10.ChangeDutyCycle(v * 100.0)
+            self.p09.ChangeDutyCycle(0)
+
+    def update(self):
+        while(self.running):
+            delta_time = time.time() - self.last_frame_time
+            self.last_frame_time = time.time()
+
+            self.set_climb_motor_velocity(self.climbing)
+
+            if self.throttle == 0:
+                self.tail_wave_timer = None
+                self.set_tail_motor_velocity(0)
+            else:
+                if self.tail_wave_timer == None:
+                    self.tail_wave_timer = 0
+                
+                self.tail_wave_timer += delta_time
+                loop_period = 0.35
+
+                if self.tail_wave_timer >= loop_period:
+                    self.tail_wave_timer -= loop_period
+                
+                if self.tail_wave_timer < loop_period * (0.1 + 0.4 * (1.0 + self.turning)):
+                    left_intensity = 0.3 * max(min(self.throttle * (1+self.turning), 1), 0)
+                    self.set_tail_motor_velocity(left_intensity)
+                else:
+                    right_intensity = 0.3 * max(min(self.throttle * (1-self.turning), 1), 0)
+                    self.set_tail_motor_velocity(-right_intensity)
+
+            time.sleep(0.01)
+
+        self.set_tail_motor_velocity(0)
+        self.set_climb_motor_velocity(0)
+
+    def run_threaded(self, turning, climbing, throttle):
+        #print ("hi! {0}, {1}, {2}".format(turning, climbing, throttle))
+        self.turning = turning
+        self.climbing = climbing
+        self.throttle = throttle
+        pass
+
+    def shutdown(self):
+        import RPi.GPIO as GPIO
+
+        self.running = False
+        time.sleep(0.1)
+        
+        self.set_tail_motor_velocity(0)
+        self.set_climb_motor_velocity(0)
+        GPIO.cleanup()
+
 class L298N_HBridge_DC_Motor(object):
     '''
     Motor controlled with an L298N hbridge from the gpio pins on Rpi

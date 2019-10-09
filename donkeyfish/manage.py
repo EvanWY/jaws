@@ -26,13 +26,11 @@ from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda, TriggeredCallback, DelayedTrigger
 from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.controller import LocalWebController, JoystickController
-from donkeycar.parts.throttle_filter import ThrottleFilter
-from donkeycar.parts.behavior import BehaviorPart
 from donkeycar.parts.file_watcher import FileWatcher
-from donkeycar.parts.launch import AiLaunch
+from donkeycar.parts.actuator import JawsController
 from donkeycar.utils import *
 
-def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type='single', meta=[] ):
+def drive(cfg, model_path=None, meta=[] ):
     '''
     Construct a working robotic vehicle from many parts.
     Each part runs as a job in the Vehicle loop, calling either
@@ -47,7 +45,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
     V = dk.vehicle.Vehicle()
             
     V.add(PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=cfg.IMAGE_DEPTH),
-          inputs=inputs,
           outputs=['cam/image_array'],
           threaded=True)
 
@@ -55,6 +52,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
           inputs=['cam/image_array'],
           outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
+    print("You can now go to <your pi ip address>:8887 to drive your car.")
     
     #See if we should even run the pilot module. 
     #This is only needed because the part run_condition only accepts boolean
@@ -64,44 +62,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
                 return False
             else:
                 return True       
-    V.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])        
-
-    def get_record_alert_color(num_records):
-        col = (0, 0, 0)
-        for count, color in cfg.RECORD_ALERT_COLOR_ARR:
-            if num_records >= count:
-                col = color
-        return col    
-    class RecordTracker:
-        def __init__(self):
-            self.last_num_rec_print = 0
-            self.dur_alert = 0
-            self.force_alert = 0
-
-        def run(self, num_records):
-            if num_records is None:
-                return 0
-            
-            if self.last_num_rec_print != num_records or self.force_alert:
-                self.last_num_rec_print = num_records
-
-                if num_records % 10 == 0:
-                    print("recorded", num_records, "records")
-                        
-                if num_records % cfg.REC_COUNT_ALERT == 0 or self.force_alert:
-                    self.dur_alert = num_records // cfg.REC_COUNT_ALERT * cfg.REC_COUNT_ALERT_CYC
-                    self.force_alert = 0
-                    
-            if self.dur_alert > 0:
-                self.dur_alert -= 1
-
-            if self.dur_alert != 0:
-                return get_record_alert_color(num_records)
-
-            return 0
-
-    rec_tracker_part = RecordTracker()
-    V.add(rec_tracker_part, inputs=["tub/num_records"], outputs=['records/alert'])
+    V.add(PilotCondition(), inputs=['user/mode'], outputs=['run_pilot'])
 
 
     class ImgPreProcess():
@@ -218,8 +179,13 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
     V.add(AiRunCondition(), inputs=['user/mode'], outputs=['ai_running'])
 
     # drive chain
-    V.add(steering, inputs=['angle'])
-    V.add(throttle, inputs=['throttle'])
+    # V.add(steering, inputs=['angle'])
+    # V.add(throttle, inputs=['throttle'])
+    class Dummy:
+        def run(self):
+            return 0
+    V.add(Dummy(), outputs=['climbing'])
+    V.add(JawsController(), inputs=['angle', 'climbing', 'throttle'], threaded=True)
 
     #add tub to save data
     th = TubHandler(path=cfg.DATA_PATH)
@@ -238,9 +204,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
     #     V.add(ImgArrToJpg(), inputs=['cam/image_array'], outputs=['jpg/bin'])
     #     V.add(pub, inputs=['jpg/bin'])
 
-    if type(ctr) is LocalWebController:
-        print("You can now go to <your pi ip address>:8887 to drive your car.")
-
     #run the vehicle for 20 seconds
     V.start(rate_hz=cfg.DRIVE_LOOP_HZ, max_loop_count=cfg.MAX_LOOPS)
 
@@ -250,10 +213,7 @@ if __name__ == '__main__':
     cfg = dk.load_config()
     
     if args['drive']:
-        model_type = args['--type']
-        camera_type = args['--camera']
-        drive(cfg, model_path=args['--model'], use_joystick=args['--js'], model_type=model_type, camera_type=camera_type,
-            meta=args['--meta'])
+        drive(cfg, model_path=args['--model'], meta=args['--meta'])
     
     if args['train']:
         from train import multi_train, preprocessFileList
@@ -261,7 +221,6 @@ if __name__ == '__main__':
         tub = args['--tub']
         model = args['--model']
         transfer = args['--transfer']
-        model_type = args['--type']
         continuous = args['--continuous']
         aug = args['--aug']     
 
@@ -270,5 +229,5 @@ if __name__ == '__main__':
             tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
             dirs.extend( tub_paths )
 
-        multi_train(cfg, dirs, model, transfer, model_type, continuous, aug)
+        multi_train(cfg, dirs, model, transfer, 'linear', continuous, aug)
 
