@@ -1,0 +1,2 @@
+
+sudo mount raspberrypi.local:/home/pi/work/jaws /home/yang/Works/remote_pi_jaws/
