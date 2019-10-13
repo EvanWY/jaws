@@ -421,7 +421,7 @@ def get_model_by_type(model_type, cfg):
     given the string model_type and the configuration settings in cfg
     create a Keras model and return it.
     '''
-    from donkeycar.parts.keras import KerasRNN_LSTM, KerasBehavioral, KerasCategorical, KerasIMU, KerasLinear, Keras3D_CNN, KerasLocalizer, KerasLatent
+    from donkeycar.parts.keras import KerasJaws
     from donkeycar.parts.tflite import TFLitePilot
  
     if model_type is None:
@@ -441,6 +441,8 @@ def get_model_by_type(model_type, cfg):
         kl = KerasIMU(num_outputs=2, num_imu_inputs=6, input_shape=input_shape)        
     elif model_type == "linear":
         kl = KerasLinear(input_shape=input_shape, roi_crop=roi_crop)
+    elif model_type == "jaws":
+        kl = KerasJaws()
     elif model_type == "tensorrt_linear":
         # Aggressively lazy load this. This module imports pycuda.autoinit which causes a lot of unexpected things
         # to happen when using TF-GPU for training.

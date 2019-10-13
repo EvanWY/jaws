@@ -106,6 +106,57 @@ class KerasPilot(object):
         return hist
 
 
+class KerasJaws(KerasPilot):
+    '''
+    The KerasLinear pilot uses one neuron to output a continous value via the 
+    Keras Dense layer with linear activation. One each for steering and throttle.
+    The output is not bounded.
+    '''
+    def __init__(self, num_outputs=4, input_shape=(120, 160, 3), *args, **kwargs):
+        super(KerasJaws, self).__init__(*args, **kwargs)
+
+        drop = 0.1
+        img_in = tf.keras.Input(shape=input_shape, name='img_in')
+        x = img_in
+        
+        x = tf.keras.layers.Convolution2D(24, (5,5), strides=(2,2), activation='relu', name="conv2d_1")(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+        x = tf.keras.layers.Convolution2D(32, (5,5), strides=(2,2), activation='relu', name="conv2d_2")(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+        x = tf.keras.layers.Convolution2D(64, (5,5), strides=(2,2), activation='relu', name="conv2d_3")(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+        x = tf.keras.layers.Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_4")(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+        x = tf.keras.layers.Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_5")(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+        
+        x = tf.keras.layers.Flatten(name='flattened')(x)
+        x = tf.keras.layers.Dense(100, activation='relu')(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+        x = tf.keras.layers.Dense(50, activation='relu')(x)
+        x = tf.keras.layers.Dropout(drop)(x)
+
+        outputs = []
+        
+        for i in range(num_outputs):
+            outputs.append(tf.keras.layers.Dense(1, activation='linear', name='n_outputs' + str(i))(x))
+            
+        self.model = tf.keras.Model(inputs=[img_in], outputs=outputs)
+        self.compile()
+
+    def compile(self):
+        self.model.compile(optimizer=self.optimizer,
+                loss='mse')
+
+    def run(self, img_arr):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        outputs = self.model.predict(img_arr)
+        x = outputs[0]
+        y = outputs[1]
+        w = outputs[2]
+        h = outputs[3]
+        return x[0][0], y[0][0], w[0][0], h[0][0]
+
 class KerasCategorical(KerasPilot):
     '''
     The KerasCategorical pilot breaks the steering and throttle decisions into discreet

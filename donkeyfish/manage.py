@@ -22,7 +22,6 @@ import numpy as np
 import donkeycar as dk
 
 #import parts
-from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda, TriggeredCallback, DelayedTrigger
 from donkeycar.parts.datastore import TubHandler
 from donkeycar.parts.controller import LocalWebController, JoystickController
@@ -44,6 +43,7 @@ def drive(cfg, model_path=None, meta=[] ):
     #Initialize car
     V = dk.vehicle.Vehicle()
             
+    from donkeycar.parts.camera import PiCamera
     V.add(PiCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H, image_d=cfg.IMAGE_DEPTH),
           outputs=['cam/image_array'],
           threaded=True)
@@ -110,7 +110,7 @@ def drive(cfg, model_path=None, meta=[] ):
                 print(e)
                 print("ERR>> problems loading model json", json_fnm)
         #When we have a model, first create an appropriate Keras part
-        kl = dk.utils.get_model_by_type('linear', cfg)
+        kl = dk.utils.get_model_by_type('jaws', cfg)
 
         model_reload_cb = None
 
@@ -152,10 +152,15 @@ def drive(cfg, model_path=None, meta=[] ):
         V.add(kl, inputs=['cam/normalized/cropped'], 
             outputs=['pilot/angle', 'pilot/throttle'],
             run_condition='run_pilot')     
-    kl = dk.utils.get_model_by_type('linear', cfg)           
+    kl = dk.utils.get_model_by_type('jaws', cfg)           
     V.add(kl, inputs=['cam/normalized/cropped'], 
-        outputs=['pilot/angle', 'pilot/throttle'],
+        outputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
         run_condition='run_pilot')      
+    
+    class FaceFollowingPilot:
+        def run(self, x, y, w, h, confidence):
+            return 0, 0
+    V.add(FaceFollowingPilot(), inputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'], outputs=['pilot/angle', 'pilot/throttle'])
     
     #Choose what inputs should change the car.
     class DriveMode:
@@ -193,11 +198,11 @@ def drive(cfg, model_path=None, meta=[] ):
 
     #add tub to save data
     th = TubHandler(path=cfg.DATA_PATH)
-    tub = th.new_tub_writer(inputs=['cam/image_array','user/angle', 'user/throttle', 'user/mode'],
-                            types=['image_array','float', 'float','str'],
+    tub = th.new_tub_writer(inputs=['cam/image_array','face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
+                            types=['image_array','float', 'float','float', 'float', 'float'],
                             user_meta=meta)
     V.add(tub,
-          inputs=['cam/image_array','user/angle', 'user/throttle', 'user/mode'], 
+          inputs=['cam/image_array','face_x', 'face_y', 'face_w', 'face_h', 'confidence'], 
           outputs=["tub/num_records"],
           run_condition='recording')
 
@@ -233,5 +238,5 @@ if __name__ == '__main__':
             tub_paths = [os.path.expanduser(n) for n in tub.split(',')]
             dirs.extend( tub_paths )
 
-        multi_train(cfg, dirs, model, transfer, 'linear', continuous, aug)
+        multi_train(cfg, dirs, model, transfer, 'jaws', continuous, aug)
 
