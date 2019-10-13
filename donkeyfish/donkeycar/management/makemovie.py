@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 import moviepy.editor as mpy
-from tensorflow.python.keras import activations
+from tensorflow.keras import activations
 
 try:
     from vis.visualization import visualize_saliency, overlay

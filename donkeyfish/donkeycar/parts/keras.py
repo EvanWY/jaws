@@ -15,25 +15,27 @@ models to help direct the vehicles motion.
 import os
 import numpy as np
 
-from tensorflow import ConfigProto, Session
-from tensorflow.python import keras
-from tensorflow.python.keras.layers import Input, Dense
-from tensorflow.python.keras.models import Model, Sequential
-from tensorflow.python.keras.layers import Convolution2D, MaxPooling2D, Reshape, BatchNormalization
-from tensorflow.python.keras.layers import Activation, Dropout, Flatten, Cropping2D, Lambda
-from tensorflow.python.keras.layers.merge import concatenate
-from tensorflow.python.keras.layers import LSTM
-from tensorflow.python.keras.layers.wrappers import TimeDistributed as TD
-from tensorflow.python.keras.layers import Conv3D, MaxPooling3D, Cropping3D, Conv2DTranspose
+# from tensorflow import ConfigProto, Session
+# from tensorflow import keras
+# from tensorflow.keras.layers import Input, Dense
+# from tensorflow.keras.models import Model, Sequential
+# from tensorflow.keras.layers import Convolution2D, MaxPooling2D, Reshape, BatchNormalization
+# from tensorflow.keras.layers import Activation, Dropout, Flatten, Cropping2D, Lambda
+# from tensorflow.keras.layers import concatenate
+# from tensorflow.keras.layers import LSTM
+# from tensorflow.keras.layers.wrappers import TimeDistributed as TD
+# from tensorflow.keras.layers import Conv3D, MaxPooling3D, Cropping3D, Conv2DTranspose
 
 import donkeycar as dk
+import tensorflow as tf
 
 # Override keras session to work around a bug in TF 1.13.1
 # Remove after we upgrade to TF 1.14 / TF 2.x.
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = Session(config=config)
-keras.backend.set_session(session)
+
+# config = ConfigProto()
+# config.gpu_options.allow_growth = True
+# session = Session(config=config)
+# tf.keras.backend.set_session(session)
 
 class KerasPilot(object):
     '''
@@ -44,7 +46,7 @@ class KerasPilot(object):
         self.optimizer = "adam"
  
     def load(self, model_path):
-        self.model = keras.models.load_model(model_path)
+        self.model = tf.keras.models.load_model(model_path)
 
     def load_weights(self, model_path, by_name=True):
         self.model.load_weights(model_path, by_name=by_name)
@@ -57,11 +59,11 @@ class KerasPilot(object):
 
     def set_optimizer(self, optimizer_type, rate, decay):
         if optimizer_type == "adam":
-            self.model.optimizer = keras.optimizers.Adam(lr=rate, decay=decay)
+            self.model.optimizer = tf.keras.optimizers.Adam(lr=rate, decay=decay)
         elif optimizer_type == "sgd":
-            self.model.optimizer = keras.optimizers.SGD(lr=rate, decay=decay)
+            self.model.optimizer = tf.keras.optimizers.SGD(lr=rate, decay=decay)
         elif optimizer_type == "rmsprop":
-            self.model.optimizer = keras.optimizers.RMSprop(lr=rate, decay=decay)
+            self.model.optimizer = tf.keras.optimizers.RMSprop(lr=rate, decay=decay)
         else:
             raise Exception("unknown optimizer type: %s" % optimizer_type)
     
@@ -75,14 +77,14 @@ class KerasPilot(object):
         """
 
         #checkpoint to save model after each epoch
-        save_best = keras.callbacks.ModelCheckpoint(saved_model_path, 
+        save_best = tf.keras.callbacks.ModelCheckpoint(saved_model_path, 
                                                     monitor='val_loss', 
                                                     verbose=verbose, 
                                                     save_best_only=True, 
                                                     mode='min')
         
         #stop training if the validation error stops improving.
-        early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', 
+        early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', 
                                                    min_delta=min_delta, 
                                                    patience=patience, 
                                                    verbose=verbose, 
@@ -331,31 +333,32 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     #we now expect that cropping done elsewhere. we will adjust our expeected image size here:
     input_shape = adjust_input_shape(input_shape, roi_crop)
     
-    img_in = Input(shape=input_shape, name='img_in')
+    img_in = tf.keras.Input(shape=input_shape, name='img_in')
     x = img_in
-    x = Convolution2D(24, (5,5), strides=(2,2), activation='relu', name="conv2d_1")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(32, (5,5), strides=(2,2), activation='relu', name="conv2d_2")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(64, (5,5), strides=(2,2), activation='relu', name="conv2d_3")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_4")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_5")(x)
-    x = Dropout(drop)(x)
     
-    x = Flatten(name='flattened')(x)
-    x = Dense(100, activation='relu')(x)
-    x = Dropout(drop)(x)
-    x = Dense(50, activation='relu')(x)
-    x = Dropout(drop)(x)
+    x = tf.keras.layers.Convolution2D(24, (5,5), strides=(2,2), activation='relu', name="conv2d_1")(x)
+    x = tf.keras.layers.Dropout(drop)(x)
+    x = tf.keras.layers.Convolution2D(32, (5,5), strides=(2,2), activation='relu', name="conv2d_2")(x)
+    x = tf.keras.layers.Dropout(drop)(x)
+    x = tf.keras.layers.Convolution2D(64, (5,5), strides=(2,2), activation='relu', name="conv2d_3")(x)
+    x = tf.keras.layers.Dropout(drop)(x)
+    x = tf.keras.layers.Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_4")(x)
+    x = tf.keras.layers.Dropout(drop)(x)
+    x = tf.keras.layers.Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_5")(x)
+    x = tf.keras.layers.Dropout(drop)(x)
+    
+    x = tf.keras.layers.Flatten(name='flattened')(x)
+    x = tf.keras.layers.Dense(100, activation='relu')(x)
+    x = tf.keras.layers.Dropout(drop)(x)
+    x = tf.keras.layers.Dense(50, activation='relu')(x)
+    x = tf.keras.layers.Dropout(drop)(x)
 
     outputs = []
     
     for i in range(num_outputs):
-        outputs.append(Dense(1, activation='linear', name='n_outputs' + str(i))(x))
+        outputs.append(tf.keras.layers.Dense(1, activation='linear', name='n_outputs' + str(i))(x))
         
-    model = Model(inputs=[img_in], outputs=outputs)
+    model = tf.keras.Model(inputs=[img_in], outputs=outputs)
     
     return model
 

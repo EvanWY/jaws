@@ -486,7 +486,10 @@ class JawsController(object):
         self.throttle = 0
         self.running = True
         self.tail_wave_timer = None
-        self.last_frame_time = time.time()
+        self.last_update_function_called_time = time.time()
+        self.update_function_fps = 0
+        self.last_run_thread_function_called_time = time.time()
+        self.run_thread_function_fps = 0
 
     def set_tail_motor_velocity(self, v):
         if v < -MAX_ABS_MOTOR_VELOCITY:
@@ -516,8 +519,9 @@ class JawsController(object):
 
     def update(self):
         while(self.running):
-            delta_time = time.time() - self.last_frame_time
-            self.last_frame_time = time.time()
+            delta_time = time.time() - self.last_update_function_called_time
+            self.last_update_function_called_time = time.time()
+            self.update_function_fps = 0.9 * self.update_function_fps + 0.1 * (1.0/delta_time)
 
             self.set_climb_motor_velocity(self.climbing)
 
@@ -547,10 +551,15 @@ class JawsController(object):
         self.set_climb_motor_velocity(0)
 
     def run_threaded(self, turning, climbing, throttle):
+        delta_time = time.time() - self.last_run_thread_function_called_time
+        self.last_run_thread_function_called_time = time.time()
+        self.run_thread_function_fps = 0.9 * self.run_thread_function_fps + 0.1 * (1.0/delta_time)
         #print ("hi! {0}, {1}, {2}".format(turning, climbing, throttle))
         self.turning = turning
         self.climbing = climbing
         self.throttle = throttle
+
+        print ("Main Thread FPS: {} ; Control Thread FPS: {}".format(self.run_thread_function_fps, self.update_function_fps))
         pass
 
     def shutdown(self):

@@ -100,7 +100,7 @@ def drive(cfg, model_path=None, meta=[] ):
         def load_model_json(kl, json_fnm):
             start = time.time()
             print('loading model json', json_fnm)
-            from tensorflow.python import keras
+            from tensorflow import keras
             try:
                 with open(json_fnm, 'r') as handle:
                     contents = handle.read()
@@ -151,7 +151,11 @@ def drive(cfg, model_path=None, meta=[] ):
         V.add(TriggeredCallback(model_path, model_reload_cb), inputs=["modelfile/reload"], run_condition="ai_running")
         V.add(kl, inputs=['cam/normalized/cropped'], 
             outputs=['pilot/angle', 'pilot/throttle'],
-            run_condition='run_pilot')            
+            run_condition='run_pilot')     
+    kl = dk.utils.get_model_by_type('linear', cfg)           
+    V.add(kl, inputs=['cam/normalized/cropped'], 
+        outputs=['pilot/angle', 'pilot/throttle'],
+        run_condition='run_pilot')      
     
     #Choose what inputs should change the car.
     class DriveMode:

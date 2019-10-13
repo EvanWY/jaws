@@ -26,7 +26,7 @@ from os.path import basename, join, splitext, dirname
 import pickle
 import datetime
 
-from tensorflow.python import keras
+from tensorflow import keras
 from docopt import docopt
 import numpy as np
 from PIL import Image
