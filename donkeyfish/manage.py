@@ -96,14 +96,28 @@ def drive(cfg, model_path=None, meta=[] ):
     class FaceFollowingPilot:
         def run(self, x, y, w, h, confidence):
             return 0, 0
-    V.add(FaceFollowingPilot(), inputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'], outputs=['pilot/angle', 'pilot/throttle'])
+    V.add(FaceFollowingPilot(),
+          inputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
+          outputs=['pilot/angle', 'pilot/throttle'],
+          run_condition='run_pilot')
 
     class DrawBoxForFaceDetection:
         def run(self, img, x, y, w, h, confidence):
-            print (img.shape)
-            exit(0)
-            return img_out
-    V.add(FaceFollowingPilot(), inputs=['cam/image_array', 'face_x', 'face_y', 'face_w', 'face_h', 'confidence'], outputs=['cam/image_array_face_box'])
+            if img is not None:
+                color = np.array([0, 255, 0], dtype=np.uint8)
+                img_out = np.copy(img)
+
+                img_out[x, y:y+h] = color
+                img_out[x+w, y:y+h] = color
+                img_out[x:x+w, y] = color
+                img_out[x:x+w, y+h] = color
+
+                print ('x:{}, y:{}, w:{}, h:{}'.format(x, y, w, h))
+            return img
+    V.add(DrawBoxForFaceDetection(),
+          inputs=['cam/image_array', 'face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
+          outputs=['cam/image_array_face_box'],
+          run_condition='run_pilot')
     
     
     #Choose what inputs should change the car.
