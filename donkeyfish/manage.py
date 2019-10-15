@@ -49,7 +49,7 @@ def drive(cfg, model_path=None, meta=[] ):
           threaded=True)
 
     V.add(LocalWebController(), 
-          inputs=['cam/image_array'],
+          inputs=['cam/image_array_face_box'],
           outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
     print("You can now go to <your pi ip address>:8887 to drive your car.")
@@ -80,79 +80,15 @@ def drive(cfg, model_path=None, meta=[] ):
         outputs=['cam/normalized/cropped'],
         run_condition='run_pilot')
 
-    if model_path:
-        def load_model(kl, model_path):
-            start = time.time()
-            print('loading model', model_path)
-            kl.load(model_path)
-            print('finished loading in %s sec.' % (str(time.time() - start)) )
-
-        def load_weights(kl, weights_path):
-            start = time.time()
-            try:
-                print('loading model weights', weights_path)
-                kl.model.load_weights(weights_path)
-                print('finished loading in %s sec.' % (str(time.time() - start)) )
-            except Exception as e:
-                print(e)
-                print('ERR>> problems loading weights', weights_path)
-
-        def load_model_json(kl, json_fnm):
-            start = time.time()
-            print('loading model json', json_fnm)
-            from tensorflow import keras
-            try:
-                with open(json_fnm, 'r') as handle:
-                    contents = handle.read()
-                    kl.model = keras.models.model_from_json(contents)
-                print('finished loading json in %s sec.' % (str(time.time() - start)) )
-            except Exception as e:
-                print(e)
-                print("ERR>> problems loading model json", json_fnm)
-        #When we have a model, first create an appropriate Keras part
-        kl = dk.utils.get_model_by_type('jaws', cfg)
-
-        model_reload_cb = None
-
-        if '.h5' in model_path or '.uff' in model_path or 'tflite' in model_path or '.pkl' in model_path:
-            #when we have a .h5 extension
-            #load everything from the model file
-            load_model(kl, model_path)
-
-            def reload_model(filename):
-                load_model(kl, filename)
-
-            model_reload_cb = reload_model
-
-        elif '.json' in model_path:
-            #when we have a .json extension
-            #load the model from there and look for a matching
-            #.wts file with just weights
-            load_model_json(kl, model_path)
-            weights_path = model_path.replace('.json', '.weights')
-            load_weights(kl, weights_path)
-
-            def reload_weights(filename):
-                weights_path = filename.replace('.json', '.weights')
-                load_weights(kl, weights_path)
-            
-            model_reload_cb = reload_weights
-
-        else:
-            print("ERR>> Unknown extension type on model file!!")
-            return
-
-        #this part will signal visual LED, if connected
-        V.add(FileWatcher(model_path, verbose=True), outputs=['modelfile/modified'])
-
-        #these parts will reload the model file, but only when ai is running so we don't interrupt user driving
-        V.add(FileWatcher(model_path), outputs=['modelfile/dirty'], run_condition="ai_running")
-        V.add(DelayedTrigger(100), inputs=['modelfile/dirty'], outputs=['modelfile/reload'], run_condition="ai_running")
-        V.add(TriggeredCallback(model_path, model_reload_cb), inputs=["modelfile/reload"], run_condition="ai_running")
-        V.add(kl, inputs=['cam/normalized/cropped'], 
-            outputs=['pilot/angle', 'pilot/throttle'],
-            run_condition='run_pilot')     
+    def load_model(kl, model_path):
+        start = time.time()
+        print('loading model', model_path)
+        kl.load(model_path)
+        print('finished loading in %s sec.' % (str(time.time() - start)) )
+   
     kl = dk.utils.get_model_by_type('jaws', cfg)           
+    load_model(kl, model_path)
+
     V.add(kl, inputs=['cam/normalized/cropped'], 
         outputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
         run_condition='run_pilot')      
@@ -161,6 +97,14 @@ def drive(cfg, model_path=None, meta=[] ):
         def run(self, x, y, w, h, confidence):
             return 0, 0
     V.add(FaceFollowingPilot(), inputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'], outputs=['pilot/angle', 'pilot/throttle'])
+
+    class DrawBoxForFaceDetection:
+        def run(self, img, x, y, w, h, confidence):
+            print (img.shape)
+            exit(0)
+            return img_out
+    V.add(FaceFollowingPilot(), inputs=['cam/image_array', 'face_x', 'face_y', 'face_w', 'face_h', 'confidence'], outputs=['cam/image_array_face_box'])
+    
     
     #Choose what inputs should change the car.
     class DriveMode:

@@ -35,7 +35,7 @@ import donkeycar as dk
 from donkeycar.parts.datastore import Tub
 from donkeycar.parts.keras import KerasLinear, KerasIMU,\
      KerasCategorical, KerasBehavioral, Keras3D_CNN,\
-     KerasRNN_LSTM, KerasLatent
+     KerasRNN_LSTM, KerasLatent, KerasJaws
 from donkeycar.parts.augment import augment_image
 from donkeycar.utils import *
 
@@ -100,15 +100,27 @@ def collate_records(records, gen_records, opts):
         sample["image_path"] = image_path
         sample["json_data"] = json_data        
 
-        angle = float(json_data['user/angle'])
-        throttle = float(json_data["user/throttle"])
+        try:
+            angle = float(json_data['user/angle'])
+            throttle = float(json_data["user/throttle"])
 
-        if opts['categorical']:
-            angle = dk.utils.linear_bin(angle)
-            throttle = dk.utils.linear_bin(throttle, N=20, offset=0, R=opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE)
+            if opts['categorical']:
+                angle = dk.utils.linear_bin(angle)
+                throttle = dk.utils.linear_bin(throttle, N=20, offset=0, R=opts['cfg'].MODEL_CATEGORICAL_MAX_THROTTLE_RANGE)
 
-        sample['angle'] = angle
-        sample['throttle'] = throttle
+            sample['angle'] = angle
+            sample['throttle'] = throttle
+        except:
+            pass
+
+        try:
+            sample['face_x'] = float(json_data['face_x'])
+            sample['face_y'] = float(json_data['face_y'])
+            sample['face_w'] = float(json_data['face_w'])
+            sample['face_h'] = float(json_data['face_h'])
+            sample['confidence'] = float(json_data['confidence'])
+        except:
+            pass
 
         try:
             accl_x = float(json_data['imu/acl_x'])
@@ -414,70 +426,115 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                 batch_data.append(_record)
 
                 if len(batch_data) == batch_size:
-                    inputs_img = []
-                    inputs_imu = []
-                    inputs_bvh = []
-                    angles = []
-                    throttles = []
-                    out_img = []
-                    out = []
+                    if type(kl) is KerasJaws:
+                        inputs_img = []
+                        xs = []
+                        ys = []
+                        ws = []
+                        hs = []
+                        confidences = []
+                        for record in batch_data:
+                            #get image data if we don't already have it
+                            if record['img_data'] is None:
+                                filename = record['image_path']
+                                
+                                img_arr = load_scaled_image_arr(filename, cfg)
 
-                    for record in batch_data:
-                        #get image data if we don't already have it
-                        if record['img_data'] is None:
-                            filename = record['image_path']
-                            
-                            img_arr = load_scaled_image_arr(filename, cfg)
+                                if img_arr is None:
+                                    break
+                                
+                                if aug:
+                                    img_arr = augment_image(img_arr)
 
-                            if img_arr is None:
-                                break
-                            
-                            if aug:
-                                img_arr = augment_image(img_arr)
+                                if cfg.CACHE_IMAGES:
+                                    record['img_data'] = img_arr
+                            else:
+                                img_arr = record['img_data']
 
-                            if cfg.CACHE_IMAGES:
-                                record['img_data'] = img_arr
-                        else:
-                            img_arr = record['img_data']
-                            
-                        if img_out:                            
-                            rz_img_arr = cv2.resize(img_arr, (127, 127)) / 255.0
-                            out_img.append(rz_img_arr[:,:,0].reshape((127, 127, 1)))
-                            
-                        if has_imu:
-                            inputs_imu.append(record['imu_array'])
-                        
-                        if has_bvh:
-                            inputs_bvh.append(record['behavior_arr'])
+                            inputs_img.append(img_arr)
+                            xs.append(record['face_x'])
+                            ys.append(record['face_y'])
+                            ws.append(record['face_w'])
+                            hs.append(record['face_h'])
+                            confidences.append(record['confidence'])
 
-                        inputs_img.append(img_arr)
-                        angles.append(record['angle'])
-                        throttles.append(record['throttle'])
-                        out.append([record['angle'], record['throttle']])
+                        if img_arr is None:
+                            continue
 
-                    if img_arr is None:
-                        continue
+                        img_arr = np.array(inputs_img).reshape(batch_size,cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
 
-                    img_arr = np.array(inputs_img).reshape(batch_size,\
-                        cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
-
-                    if has_imu:
-                        X = [img_arr, np.array(inputs_imu)]
-                    elif has_bvh:
-                        X = [img_arr, np.array(inputs_bvh)]
-                    else:
                         X = [img_arr]
 
-                    if img_out:
-                        y = [out_img, np.array(angles), np.array(throttles)]
-                    elif model_out_shape[1] == 2:
-                        y = [np.array([out]).reshape(batch_size, 2) ]
+                        y = [np.array(xs), np.array(ys), np.array(ws), np.array(hs), np.array(confidences)]
+
+                        yield X, y
+
+                        batch_data = []
                     else:
-                        y = [np.array(angles), np.array(throttles)]
+                        inputs_img = []
+                        inputs_imu = []
+                        inputs_bvh = []
+                        angles = []
+                        throttles = []
+                        out_img = []
+                        out = []
 
-                    yield X, y
+                        for record in batch_data:
+                            #get image data if we don't already have it
+                            if record['img_data'] is None:
+                                filename = record['image_path']
+                                
+                                img_arr = load_scaled_image_arr(filename, cfg)
 
-                    batch_data = []
+                                if img_arr is None:
+                                    break
+                                
+                                if aug:
+                                    img_arr = augment_image(img_arr)
+
+                                if cfg.CACHE_IMAGES:
+                                    record['img_data'] = img_arr
+                            else:
+                                img_arr = record['img_data']
+                                
+                            if img_out:                            
+                                rz_img_arr = cv2.resize(img_arr, (127, 127)) / 255.0
+                                out_img.append(rz_img_arr[:,:,0].reshape((127, 127, 1)))
+                                
+                            if has_imu:
+                                inputs_imu.append(record['imu_array'])
+                            
+                            if has_bvh:
+                                inputs_bvh.append(record['behavior_arr'])
+
+                            inputs_img.append(img_arr)
+                            angles.append(record['angle'])
+                            throttles.append(record['throttle'])
+                            out.append([record['angle'], record['throttle']])
+
+                        if img_arr is None:
+                            continue
+
+                        img_arr = np.array(inputs_img).reshape(batch_size,\
+                            cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+
+                        if has_imu:
+                            X = [img_arr, np.array(inputs_imu)]
+                        elif has_bvh:
+                            X = [img_arr, np.array(inputs_bvh)]
+                        else:
+                            X = [img_arr]
+
+                        if img_out:
+                            y = [out_img, np.array(angles), np.array(throttles)]
+                        elif model_out_shape[1] == 2:
+                            y = [np.array([out]).reshape(batch_size, 2) ]
+                        else:
+                            y = [np.array(angles), np.array(throttles)]
+
+                        yield X, y
+
+                        batch_data = []
     
     model_path = os.path.expanduser(model_name)
 
@@ -560,17 +617,21 @@ def go_train(kl, cfg, train_gen, val_gen, gen_records, model_name, steps_per_epo
 
     if cfg.USE_EARLY_STOP and not continuous:
         callbacks_list.append(early_stop)
+    
+    print("running fit_generator() ...")
 
     history = kl.model.fit_generator(
                     train_gen, 
                     steps_per_epoch=steps_per_epoch, 
                     epochs=epochs, 
-                    verbose=cfg.VEBOSE_TRAIN, 
+                    verbose=1, 
                     validation_data=val_gen,
                     callbacks=callbacks_list, 
                     validation_steps=val_steps,
                     workers=workers_count,
                     use_multiprocessing=use_multiprocessing)
+
+    print("fit_generator() Done!")
                     
     full_model_val_loss = min(history.history['val_loss'])
     max_val_loss = full_model_val_loss + cfg.PRUNE_VAL_LOSS_DEGRADATION_LIMIT

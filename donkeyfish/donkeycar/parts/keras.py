@@ -112,7 +112,7 @@ class KerasJaws(KerasPilot):
     Keras Dense layer with linear activation. One each for steering and throttle.
     The output is not bounded.
     '''
-    def __init__(self, num_outputs=4, input_shape=(120, 160, 3), *args, **kwargs):
+    def __init__(self, num_outputs=5, input_shape=(120, 160, 3), *args, **kwargs):
         super(KerasJaws, self).__init__(*args, **kwargs)
 
         drop = 0.1
@@ -155,7 +155,8 @@ class KerasJaws(KerasPilot):
         y = outputs[1]
         w = outputs[2]
         h = outputs[3]
-        return x[0][0], y[0][0], w[0][0], h[0][0]
+        confidence = outputs[3]
+        return x[0][0], y[0][0], w[0][0], h[0][0], confidence[0][0]
 
 class KerasCategorical(KerasPilot):
     '''
