@@ -115,7 +115,7 @@ class KerasJaws(KerasPilot):
     def __init__(self, num_outputs=5, input_shape=(120, 160, 3), *args, **kwargs):
         super(KerasJaws, self).__init__(*args, **kwargs)
 
-        drop = 0.2
+        drop = 0.34
         img_in = tf.keras.Input(shape=input_shape, name='img_in')
         x = img_in
         
