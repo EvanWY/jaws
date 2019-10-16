@@ -89,7 +89,7 @@ def drive(cfg, model_path=None, meta=[] ):
     kl = dk.utils.get_model_by_type('jaws', cfg)           
     load_model(kl, model_path)
 
-    V.add(kl, inputs=['cam/normalized/cropped'], 
+    V.add(kl, inputs=['cam/image_array'], 
         outputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
         run_condition='run_pilot')      
     
@@ -102,19 +102,38 @@ def drive(cfg, model_path=None, meta=[] ):
           run_condition='run_pilot')
 
     class DrawBoxForFaceDetection:
+        def __init__ (self, cfg):
+            self.cfg = cfg
         def run(self, img, x, y, w, h, confidence):
             if img is not None:
                 color = np.array([0, 255, 0], dtype=np.uint8)
+                color2 = np.array([255, 255, 0], dtype=np.uint8)
                 img_out = np.copy(img)
+                img_w, img_h = self.cfg.IMAGE_W, self.cfg.IMAGE_H
+                x_px = int(img_w * x)
+                y_px = int(img_h * y)
+                w_px = int(img_w * w)
+                h_px = int(img_h * h)
+                print ('x:{}, y:{}, w:{}, h:{}'.format(x_px, y_px, w_px, h_px))
 
-                img_out[x, y:y+h] = color
-                img_out[x+w, y:y+h] = color
-                img_out[x:x+w, y] = color
-                img_out[x:x+w, y+h] = color
+                u = y_px
+                d = y_px + h_px
+                l = x_px
+                r = x_px + w_px
 
-                print ('x:{}, y:{}, w:{}, h:{}'.format(x, y, w, h))
+                u = min(img_h-1, max(0, u))
+                d = min(img_h-1, max(0, d))
+                l = min(img_w-1, max(0, l))
+                r = min(img_w-1, max(0, r))
+
+                img_out[u:d, l]   = color
+                img_out[u:d, r]   = color
+                img_out[u,   l:r]   = color2
+                img_out[d,   l:r]   = color
+                return img_out
+
             return img
-    V.add(DrawBoxForFaceDetection(),
+    V.add(DrawBoxForFaceDetection(cfg),
           inputs=['cam/image_array', 'face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
           outputs=['cam/image_array_face_box'],
           run_condition='run_pilot')

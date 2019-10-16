@@ -1,2 +1,4 @@
 
 sudo mount raspberrypi.local:/home/pi/work/jaws /home/yang/Works/remote_pi_jaws/
+
+tensorflow for pi zero: https://github.com/lhelontra/tensorflow-on-arm/releases
