@@ -115,7 +115,7 @@ class KerasJaws(KerasPilot):
     def __init__(self, num_outputs=5, input_shape=(120, 160, 3), *args, **kwargs):
         super(KerasJaws, self).__init__(*args, **kwargs)
 
-        drop = 0.1
+        drop = 0.2
         img_in = tf.keras.Input(shape=input_shape, name='img_in')
         x = img_in
         
@@ -155,7 +155,7 @@ class KerasJaws(KerasPilot):
         y = outputs[1]
         w = outputs[2]
         h = outputs[3]
-        confidence = outputs[3]
+        confidence = outputs[4]
         return x[0][0], y[0][0], w[0][0], h[0][0], confidence[0][0]
 
 class KerasCategorical(KerasPilot):
