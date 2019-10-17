@@ -126,6 +126,8 @@ def img_crop(img_arr, top, bottom):
 
 def normalize_and_crop(img_arr, cfg):
     img_arr = img_arr.astype(np.float32) / 255.0
+    img_arr = rgb2gray(img_arr).reshape(img_arr.shape[0], img_arr.shape[1], 1)
+
     if cfg.ROI_CROP_TOP or cfg.ROI_CROP_BOTTOM:
         img_arr = img_crop(img_arr, cfg.ROI_CROP_TOP, cfg.ROI_CROP_BOTTOM)
         if len(img_arr.shape) == 2:

@@ -461,7 +461,7 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
                         if img_arr is None:
                             continue
 
-                        img_arr = np.array(inputs_img).reshape(batch_size,cfg.TARGET_H, cfg.TARGET_W, cfg.TARGET_D)
+                        img_arr = np.array(inputs_img).reshape(batch_size,cfg.TARGET_H, cfg.TARGET_W, 1)
 
                         X = [img_arr]
 

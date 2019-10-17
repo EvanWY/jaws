@@ -112,10 +112,10 @@ class KerasJaws(KerasPilot):
     Keras Dense layer with linear activation. One each for steering and throttle.
     The output is not bounded.
     '''
-    def __init__(self, num_outputs=5, input_shape=(120, 160, 3), *args, **kwargs):
+    def __init__(self, num_outputs=5, input_shape=(120, 160, 1), *args, **kwargs):
         super(KerasJaws, self).__init__(*args, **kwargs)
 
-        drop = 0.34
+        drop = 0.2
         img_in = tf.keras.Input(shape=input_shape, name='img_in')
         x = img_in
         
@@ -129,11 +129,9 @@ class KerasJaws(KerasPilot):
         x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2), padding='valid')(x)
         x = tf.keras.layers.Dropout(drop)(x)
         x = tf.keras.layers.Convolution2D(64, (3,3), strides=(1,1), activation='relu')(x)
-        x = tf.keras.layers.Dropout(drop)(x)
         x = tf.keras.layers.Convolution2D(64, (3,3), strides=(1,1), activation='relu')(x)
         x = tf.keras.layers.Dropout(drop)(x)
-        x = tf.keras.layers.Convolution2D(128, (3,3), strides=(1,1), activation='relu')(x)
-        x = tf.keras.layers.Dropout(drop)(x)
+        x = tf.keras.layers.Convolution2D(256, (3,3), strides=(1,1), activation='relu')(x)
         x = tf.keras.layers.Convolution2D(256, (3,3), strides=(1,1), activation='relu')(x)
         x = tf.keras.layers.Dropout(drop)(x)
         
