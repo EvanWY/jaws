@@ -137,9 +137,7 @@ class KerasJaws(KerasPilot):
         
         x = tf.keras.layers.Flatten(name='flattened')(x)
         x = tf.keras.layers.Dense(100, activation='relu')(x)
-        x = tf.keras.layers.Dropout(drop)(x)
         x = tf.keras.layers.Dense(50, activation='relu')(x)
-        x = tf.keras.layers.Dropout(drop)(x)
 
         outputs = []
         

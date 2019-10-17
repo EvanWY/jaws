@@ -89,7 +89,7 @@ def drive(cfg, model_path=None, meta=[] ):
     kl = dk.utils.get_model_by_type('jaws', cfg)           
     load_model(kl, model_path)
 
-    V.add(kl, inputs=['cam/image_array'], 
+    V.add(kl, inputs=['cam/normalized/cropped'], 
         outputs=['face_x', 'face_y', 'face_w', 'face_h', 'confidence'],
         run_condition='run_pilot')      
     
