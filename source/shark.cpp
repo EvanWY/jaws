@@ -281,7 +281,7 @@ int main(int argc, char** argv) {
         }
 
         PROFILER_TIMER();
-        //pResults = facedetect_cnn(pBuffer, (unsigned char *)(imgOriginal.ptr(0)), imgOriginal.cols, imgOriginal.rows, (int)imgOriginal.step);
+        pResults = facedetect_cnn(pBuffer, (unsigned char *)(imgOriginal.ptr(0)), imgOriginal.cols, imgOriginal.rows, (int)imgOriginal.step);
 
         PROFILER_TIMER();
         printf("%d faces detected.\n", (pResults ? *pResults : 0));
