@@ -14,6 +14,7 @@
 using namespace cv;
 using namespace std;
 
+// ASCII ART: http://patorjk.com/software/taag/#p=display&h=0&v=0&f=Banner&t=Video%20Capture
 /*
   #####                                                                         
  #     #   ####   #    #  #####  #####    ####   #       #       ######  #####  
@@ -146,6 +147,41 @@ void *shark_control_thread_function(void * data) {
     return NULL;
 }
 
+
+/*
+ #     #                                  #####                                                 
+ #     #  #  #####   ######   ####       #     #    ##    #####   #####  #    #  #####   ###### 
+ #     #  #  #    #  #       #    #      #         #  #   #    #    #    #    #  #    #  #      
+ #     #  #  #    #  #####   #    #      #        #    #  #    #    #    #    #  #    #  #####  
+  #   #   #  #    #  #       #    #      #        ######  #####     #    #    #  #####   #      
+   # #    #  #    #  #       #    #      #     #  #    #  #         #    #    #  #   #   #      
+    #     #  #####   ######   ####        #####   #    #  #         #     ####   #    #  ######                                                                                  
+*/
+pthread_mutex_t lock_video_cap;
+Mat latest_img
+void *shark_video_cap_thread_function(void * data) {
+    VideoCapture cap(0); //capture the video from webcam
+
+    if (!cap.isOpened()) {
+        cout << "Cannot open the VideoCapture cap(0)" << endl;
+    }
+    else {
+        cout << "Open VideoCapture cap(0). Success!" << endl;
+    }
+    cap.set(CV_CAP_PROP_FRAME_WIDTH,128);//320x240
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT,96);
+
+    while (1) {
+        pthread_mutex_lock(&lock_video_cap);
+        cap >> latest_img;
+        if (latest_img.empty())
+            break;
+        pthread_mutex_unlock(&lock_video_cap);
+        usleep(10000);
+    }
+    return NULL;
+}
+
 /*
  ######                                                     
  #     #  #####    ####   ######  #  #       ######  #####  
@@ -186,21 +222,23 @@ void PROFILER_TIMER(bool is_loop_begin = false) {
  #     #  #    #  #  #    # 
 */
 int main(int argc, char** argv) {
-    VideoCapture cap(0); //capture the video from webcam
+    // VideoCapture cap(0); //capture the video from webcam
 
-    if (!cap.isOpened()) {
-        cout << "Cannot open the VideoCapture cap(0)" << endl;
-    }
-    else {
-        cout << "Open VideoCapture cap(0). Success!" << endl;
-    }
-    cap.set(CV_CAP_PROP_FRAME_WIDTH,128);//320x240
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT,96);
-    cap.set(CV_CAP_PROP_BUFFERSIZE, 1);
+    // if (!cap.isOpened()) {
+    //     cout << "Cannot open the VideoCapture cap(0)" << endl;
+    // }
+    // else {
+    //     cout << "Open VideoCapture cap(0). Success!" << endl;
+    // }
+    // cap.set(CV_CAP_PROP_FRAME_WIDTH,128);//320x240
+    // cap.set(CV_CAP_PROP_FRAME_HEIGHT,96);
+    // cap.set(CV_CAP_PROP_BUFFERSIZE, 1);
     //cout << cap.set(CV_CAP_PROP_CONVERT_RGB, false) << endl;
 
     pthread_t tid;
     pthread_create(&tid, NULL, shark_control_thread_function, NULL);
+    pthread_t tid_video_cap;
+    pthread_create(&tid_video_cap, NULL, shark_video_cap_thread_function, NULL);
 
     // auto startTime = chrono::high_resolution_clock::now();
     // auto currentTime = startTime;
@@ -208,13 +246,10 @@ int main(int argc, char** argv) {
 
     while(1) {
         PROFILER_TIMER(1);
+        if (latest_img.empty())
+            continue;
         Mat imgOriginal;
-        cap >> imgOriginal;
-        if (imgOriginal.empty())
-            break;
-
-        PROFILER_TIMER();
-        flip(imgOriginal, imgOriginal, -1);
+        flip(latest_img, imgOriginal, -1);
 
         // PROFILER_TIMER();
         // Mat imgHSV;
@@ -279,7 +314,7 @@ int main(int argc, char** argv) {
         PROFILER_TIMER();
     }
 
-    cap.release();
+    // cap.release();
     destroyAllWindows();
 
 }
