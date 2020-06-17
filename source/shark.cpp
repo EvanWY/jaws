@@ -196,6 +196,7 @@ int main(int argc, char** argv) {
     }
     cap.set(CV_CAP_PROP_FRAME_WIDTH,128);//320x240
     cap.set(CV_CAP_PROP_FRAME_HEIGHT,96);
+    cap.set(CAP_PROP_BUFFERSIZE，1);
     //cout << cap.set(CV_CAP_PROP_CONVERT_RGB, false) << endl;
 
     pthread_t tid;
