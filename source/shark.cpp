@@ -158,7 +158,7 @@ void *shark_control_thread_function(void * data) {
     #     #  #####   ######   ####        #####   #    #  #         #     ####   #    #  ######                                                                                  
 */
 pthread_mutex_t lock_video_cap;
-Mat latest_img
+Mat latest_img;
 void *shark_video_cap_thread_function(void * data) {
     VideoCapture cap(0); //capture the video from webcam
 
